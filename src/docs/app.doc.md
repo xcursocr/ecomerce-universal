@@ -57,6 +57,48 @@ if (error instanceof AxiosError) {
 NEXT_PUBLIC_API_URL=https://gonzapi.domcloud.dev/api/v1
 ```
 
+#### ./next.config.js
+
+```tsx
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "localhost",
+      },
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+      },
+      {
+        protocol: "https",
+        hostname: "api.dicebear.com",
+      },
+      {
+        protocol: "https",
+        hostname: "avatar.iran.liara.run",
+      },
+      {
+        protocol: "https",
+        hostname: "gonzapi.domcloud.dev",
+        // port: '5004',
+        // pathname: '/uploads/**',
+      },
+    ],
+  },
+};
+
+export default nextConfig;
+```
+
 #### Estructura de carpetas
 
 ```txt
@@ -535,7 +577,7 @@ export const genericService = {
     // Si en el futuro necesitas la paginación (total, last_page),
     // deberías retornar 'data' completo en lugar de 'data.data'.
     // Por ahora, para dropdowns y listas simples, esto está perfecto.
-    return data.data;
+    return data;
   },
 
   /**
@@ -994,7 +1036,6 @@ export default function CreateProductPage() {
 import { genericService } from "@/core/services/generic.service";
 import { Product } from "@/core/types";
 import { Edit, Plus, Trash2 } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -1007,10 +1048,15 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     try {
       // ?include=brands,subcategories para que el backend traiga los nombres
-      const data = await genericService.getAll<Product[]>("products", {
-        include: "brands,subcategories",
-        sort: "id:DESC",
-      });
+      const { data, error, message, success, meta } =
+        await genericService.getAll<Product[]>("products", {
+          include: "brands,subcategories,categories",
+          sort: "id:DESC",
+        });
+      console.log(error);
+      console.log(message);
+      console.log(success);
+      console.log(meta);
       setProducts(data);
     } catch (error) {
       console.log(error);
@@ -1039,6 +1085,7 @@ export default function ProductsPage() {
   };
 
   if (loading) return <div className="p-8">Cargando productos...</div>;
+  console.log(products);
 
   return (
     <div>
@@ -1064,6 +1111,7 @@ export default function ProductsPage() {
               <th className="p-4">Stock</th>
               <th className="p-4">Marca</th>
               <th className="p-4">Categoría</th>
+              <th className="p-4">Sub Categoría</th>
               <th className="p-4 text-right">Acciones</th>
             </tr>
           </thead>
@@ -1071,11 +1119,13 @@ export default function ProductsPage() {
             {products.map((product) => (
               <tr key={product.id} className="hover:bg-gray-50 transition">
                 <td className="p-4">
-                  {product.image_url ? (
-                    <Image
-                      src={product.image_url}
+                  {product.image ? (
+                    <img
+                      src={product.image}
                       alt={product.name}
                       className="w-12 h-12 object-cover rounded-md border"
+                      // width={512}
+                      // height={512}
                     />
                   ) : (
                     <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-xs">
@@ -1099,6 +1149,7 @@ export default function ProductsPage() {
                   </span>
                 </td>
                 <td className="p-4">{product.brands?.name || "-"}</td>
+                <td className="p-4">{product.categories?.name || "-"}</td>
                 <td className="p-4">{product.subcategories?.name || "-"}</td>
                 <td className="p-4 text-right">
                   <div className="flex justify-end gap-2">

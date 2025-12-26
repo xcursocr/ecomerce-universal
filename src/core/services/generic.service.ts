@@ -17,7 +17,7 @@ export const genericService = {
         // Si en el futuro necesitas la paginación (total, last_page),
         // deberías retornar 'data' completo en lugar de 'data.data'.
         // Por ahora, para dropdowns y listas simples, esto está perfecto.
-        return data.data;
+        return data;
     },
 
     /**

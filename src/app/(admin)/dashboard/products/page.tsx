@@ -3,7 +3,6 @@
 import { genericService } from '@/core/services/generic.service';
 import { Product } from '@/core/types';
 import { Edit, Plus, Trash2 } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -16,10 +15,14 @@ export default function ProductsPage() {
     const loadProducts = async () => {
         try {
             // ?include=brands,subcategories para que el backend traiga los nombres
-            const data = await genericService.getAll<Product[]>('products', {
+            const { data, error, message, success, meta } = await genericService.getAll<Product[]>('products', {
                 include: 'brands,subcategories,categories',
                 sort: 'id:DESC'
             });
+            console.log(error)
+            console.log(message)
+            console.log(success)
+            console.log(meta)
             setProducts(data);
         } catch (error) {
             console.log(error)
@@ -82,11 +85,13 @@ export default function ProductsPage() {
                         {products.map((product) => (
                             <tr key={product.id} className="hover:bg-gray-50 transition">
                                 <td className="p-4">
-                                    {product.image_url ? (
-                                        <Image
-                                            src={product.image_url}
+                                    {product.image ? (
+                                        <img
+                                            src={product.image}
                                             alt={product.name}
                                             className="w-12 h-12 object-cover rounded-md border"
+                                        // width={512}
+                                        // height={512}
                                         />
                                     ) : (
                                         <div className="w-12 h-12 bg-gray-200 rounded-md flex items-center justify-center text-xs">N/A</div>

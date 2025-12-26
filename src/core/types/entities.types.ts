@@ -58,7 +58,7 @@ export interface Product {
     description: string;
     price: number; // En DB es DECIMAL, aquí es number
     stock: number;
-    image_url: string;
+    image: string;
     is_active: boolean;
     created_at: string;
 
