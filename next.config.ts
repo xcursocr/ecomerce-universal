@@ -1,35 +1,22 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   images: {
     remotePatterns: [
       {
-        protocol: 'http',
-        hostname: 'localhost',
+        protocol: 'https',
+        hostname: '*.domcloud.io', // Permite subdominios de domcloud
       },
       {
         protocol: 'https',
-        hostname: 'picsum.photos',
+        hostname: '*.domcloud.dev', // Tu dominio actual
       },
+
+      // Agrega otros dominios si usas imágenes de prueba (ej: unsplash)
       {
         protocol: 'https',
         hostname: 'images.unsplash.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'api.dicebear.com',
-      },
-      {
-        protocol: 'https',
-        hostname: 'avatar.iran.liara.run',
-      },
-      {
-        protocol: 'https',
-        hostname: 'gonzapi.domcloud.dev',
-        // port: '5004',
-        // pathname: '/uploads/**',
-      },
+      }
     ],
   },
 };

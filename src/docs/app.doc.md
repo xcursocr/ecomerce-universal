@@ -92,6 +92,14 @@ const nextConfig: NextConfig = {
         // port: '5004',
         // pathname: '/uploads/**',
       },
+      {
+        protocol: "https",
+        hostname: "*.domcloud.io", // Permite subdominios de domcloud
+      },
+      {
+        protocol: "https",
+        hostname: "*.domcloud.dev", // Tu dominio actual
+      },
     ],
   },
 };
@@ -670,10 +678,119 @@ export default function RootLayout({
 #### ./src/app/page.tsx
 
 ```tsx
-export default function Home() {
+import { genericService } from "@/core/services/generic.service";
+import { Product } from "@/core/types";
+import ProductCard from "@/ui/molecules/ProductCard";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
+
+// Hacemos la página async para pedir datos al servidor
+export default async function HomePage() {
+  // 1. Fetch de productos destacados (Últimos 8)
+  // Nota: genericService funciona en el servidor porque axios ignora el interceptor
+  // si no hay window (token), lo cual está bien para datos públicos.
+  let products: Product[] = [];
+
+  try {
+    products = await genericService.getAll<Product[]>("products", {
+      limit: 8,
+      sort: "id:DESC",
+      include: "brands", // Importante para mostrar la marca en la tarjeta
+    });
+  } catch (error) {
+    console.error("Error cargando productos home:", error);
+    // Fallback silencioso (array vacío) para que no explote la home
+  }
+
   return (
     <div>
-      <h1>Home Page</h1>
+      {/* 🦸 HERO SECTION */}
+      <section className="bg-gradient-to-r from-gray-900 to-blue-900 text-white py-20">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="max-w-xl space-y-6">
+            <h1 className="text-4xl md:text-6xl font-bold leading-tight">
+              La Mejor Tecnología <br />
+              <span className="text-blue-400">Al Mejor Precio</span>
+            </h1>
+            <p className="text-lg text-gray-300">
+              Descubre nuestra nueva colección de productos importados con
+              garantía oficial y envío a todo el país.
+            </p>
+            <div className="flex gap-4 pt-4">
+              <Link
+                href="/shop"
+                className="bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition flex items-center gap-2"
+              >
+                Ver Catálogo <ArrowRight size={20} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Imagen decorativa (opcional) */}
+          <div className="hidden md:block w-96 h-96 bg-white/10 rounded-full blur-3xl absolute right-20 top-20 pointer-events-none"></div>
+        </div>
+      </section>
+
+      {/* 🛍️ PRODUCTOS DESTACADOS */}
+      <section className="container mx-auto px-4 py-16">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold text-gray-900">Nuevos Ingresos</h2>
+          <Link
+            href="/shop"
+            className="text-blue-600 font-medium hover:underline"
+          >
+            Ver todo
+          </Link>
+        </div>
+
+        {products.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 bg-gray-50 rounded-lg">
+            <p className="text-gray-500">Aún no hay productos destacados.</p>
+            <p className="text-sm text-gray-400 mt-2">
+              Ve al Dashboard para crear algunos.
+            </p>
+          </div>
+        )}
+      </section>
+
+      {/* 📦 FEATURES SECTION */}
+      <section className="bg-gray-50 py-16 border-t">
+        <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+          <div className="p-6">
+            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+              🚀
+            </div>
+            <h3 className="font-bold mb-2">Envío Rápido</h3>
+            <p className="text-sm text-gray-500">
+              Recibe tu pedido en 24/48hs en todo el país.
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+              🛡️
+            </div>
+            <h3 className="font-bold mb-2">Garantía Asegurada</h3>
+            <p className="text-sm text-gray-500">
+              Compra protegido con nuestra garantía de satisfacción.
+            </p>
+          </div>
+          <div className="p-6">
+            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+              💳
+            </div>
+            <h3 className="font-bold mb-2">Pagos Seguros</h3>
+            <p className="text-sm text-gray-500">
+              Aceptamos todas las tarjetas y transferencias.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -852,9 +969,9 @@ export default function CreateProductPage() {
           genericService.getAll<Subcategory[]>("subcategories"),
         ]);
 
-        setBrands(brandsData);
-        setCategories(catData);
-        setSubcategories(subsData);
+        setBrands(brandsData.data);
+        setCategories(catData.data);
+        setSubcategories(subsData.data);
       } catch (error) {
         toast.error("Error cargando listas");
         console.error(error);
@@ -1053,10 +1170,7 @@ export default function ProductsPage() {
           include: "brands,subcategories,categories",
           sort: "id:DESC",
         });
-      console.log(error);
-      console.log(message);
-      console.log(success);
-      console.log(meta);
+
       setProducts(data);
     } catch (error) {
       console.log(error);
@@ -1228,6 +1342,76 @@ export const useAuthStore = create<AuthState>()(
 );
 ```
 
+#### ./src/store/cart.store.ts
+
+```tsx
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Product } from "../types";
+
+export interface CartItem extends Product {
+  quantity: number;
+}
+
+interface CartState {
+  items: CartItem[];
+  isOpen: boolean; // Para abrir/cerrar el mini-carrito lateral (opcional)
+
+  // Acciones
+  addItem: (product: Product) => void;
+  removeItem: (productId: number) => void;
+  clearCart: () => void;
+  toggleCart: () => void;
+
+  // Computed
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
+}
+
+export const useCartStore = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      isOpen: false,
+
+      addItem: (product) => {
+        const { items } = get();
+        const exists = items.find((i) => i.id === product.id);
+
+        if (exists) {
+          // Si ya existe, aumentamos cantidad
+          set({
+            items: items.map((i) =>
+              i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+            ),
+          });
+        } else {
+          // Si no existe, lo agregamos con quantity 1
+          set({ items: [...items, { ...product, quantity: 1 }] });
+        }
+      },
+
+      removeItem: (id) => {
+        set({ items: get().items.filter((i) => i.id !== id) });
+      },
+
+      clearCart: () => set({ items: [] }),
+
+      toggleCart: () => set({ isOpen: !get().isOpen }),
+
+      getTotalItems: () =>
+        get().items.reduce((acc, item) => acc + item.quantity, 0),
+
+      getTotalPrice: () =>
+        get().items.reduce((acc, item) => acc + item.price * item.quantity, 0),
+    }),
+    {
+      name: "shopping-cart", // Persistir en localStorage
+    }
+  )
+);
+```
+
 #### ./src/app/(auth)/login/page.tsx
 
 ```tsx
@@ -1354,6 +1538,290 @@ export default function LoginPage() {
             {isSubmitting ? "Verificando..." : "Ingresar"}
           </button>
         </form>
+      </div>
+    </div>
+  );
+}
+```
+
+#### ./src/ui/organisms/Navbar.tsx
+
+```tsx
+"use client";
+
+import { useAuthStore } from "@/core/store/auth.store";
+import { useCartStore } from "@/core/store/cart.store";
+import { LogOut, Search, ShoppingBag, User as UserIcon } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+export default function Navbar() {
+  const router = useRouter();
+  const { isAuth, user, logout } = useAuthStore();
+  const items = useCartStore((state) => state.items);
+  const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/shop?q=${searchTerm}`);
+    }
+  };
+
+  return (
+    <header className="sticky top-0 z-50 bg-white border-b shadow-sm">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
+        {/* Logo */}
+        <Link href="/" className="text-2xl font-bold text-blue-600">
+          Store<span className="text-gray-900">Universal</span>
+        </Link>
+
+        {/* Search Bar (Hidden on mobile for simplicity, or usable) */}
+        <form
+          onSubmit={handleSearch}
+          className="hidden md:flex flex-1 max-w-md relative"
+        >
+          <input
+            type="text"
+            placeholder="Buscar productos..."
+            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-full focus:ring-2 focus:ring-blue-500 outline-none"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+        </form>
+
+        {/* Icons */}
+        <div className="flex items-center gap-4">
+          {/* Cart */}
+          <Link
+            href="/cart"
+            className="relative p-2 hover:bg-gray-100 rounded-full"
+          >
+            <ShoppingBag size={24} className="text-gray-700" />
+            {totalItems > 0 && (
+              <span className="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                {totalItems}
+              </span>
+            )}
+          </Link>
+
+          {/* User Auth */}
+          {isAuth && user ? (
+            <div className="flex items-center gap-2 group relative">
+              <span className="text-sm font-medium hidden sm:block">
+                {user.name}
+              </span>
+              <button className="p-1 bg-gray-100 rounded-full">
+                {/* Si tuvieras avatar, iría aquí. Usamos icono por defecto */}
+                <UserIcon size={20} className="text-gray-600" />
+              </button>
+
+              {/* Dropdown simple */}
+              <div className="absolute right-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                {user.role === "admin" && (
+                  <Link
+                    href="/dashboard"
+                    className="block px-4 py-2 hover:bg-gray-50 text-sm"
+                  >
+                    Dashboard
+                  </Link>
+                )}
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-4 py-2 hover:bg-red-50 text-red-600 text-sm flex items-center gap-2"
+                >
+                  <LogOut size={14} /> Salir
+                </button>
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800"
+            >
+              Ingresar
+            </Link>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+```
+
+#### ./src/ui/organims/Footer.tsx
+
+```tsx
+import Link from "next/link";
+
+export default function Footer() {
+  return (
+    <footer className="bg-gray-900 text-gray-300 py-12 mt-auto">
+      <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div>
+          <h3 className="text-white text-lg font-bold mb-4">StoreUniversal</h3>
+          <p className="text-sm text-gray-400">
+            La mejor tienda demostrativa construida con arquitectura modular y
+            escalable.
+          </p>
+        </div>
+
+        <div>
+          <h4 className="text-white font-medium mb-4">Enlaces</h4>
+          <ul className="space-y-2 text-sm">
+            <li>
+              <Link href="/" className="hover:text-white">
+                Inicio
+              </Link>
+            </li>
+            <li>
+              <Link href="/shop" className="hover:text-white">
+                Catálogo
+              </Link>
+            </li>
+            <li>
+              <Link href="/about" className="hover:text-white">
+                Nosotros
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="text-white font-medium mb-4">Legal</h4>
+          <ul className="space-y-2 text-sm">
+            <li>
+              <Link href="#" className="hover:text-white">
+                Privacidad
+              </Link>
+            </li>
+            <li>
+              <Link href="#" className="hover:text-white">
+                Términos
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <p className="text-sm">
+            © {new Date().getFullYear()} E-commerce Project.
+          </p>
+        </div>
+      </div>
+    </footer>
+  );
+}
+```
+
+#### ./src/app/(shop)/layout.tsx
+
+```tsx
+import Footer from "@/ui/organisms/Footer";
+import Navbar from "@/ui/organisms/Navbar";
+
+export default function ShopLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      <Navbar />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
+  );
+}
+```
+
+#### ./src/ui/molecules/ProductCard.tsx
+
+```tsx
+"use client";
+
+import { useCartStore } from "@/core/store/cart.store";
+import { Product } from "@/core/types";
+import { ShoppingCart } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { toast } from "sonner";
+
+interface ProductCardProps {
+  product: Product;
+}
+
+export default function ProductCard({ product }: ProductCardProps) {
+  const addItem = useCartStore((state) => state.addItem);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault(); // Evita que navegue al detalle
+    e.stopPropagation();
+    addItem(product);
+    toast.success("Agregado al carrito");
+  };
+
+  return (
+    <div className="group bg-white rounded-xl border border-gray-100 hover:shadow-lg transition-all duration-300 overflow-hidden flex flex-col h-full">
+      {/* Imagen con Link */}
+      <Link
+        href={`/product/${product.slug}`}
+        className="relative aspect-square bg-gray-50 overflow-hidden"
+      >
+        {product.image ? (
+          <Image
+            src={product.image}
+            alt={product.name}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            Sin imagen
+          </div>
+        )}
+
+        {/* Badge de Stock */}
+        {product.stock <= 0 && (
+          <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-md font-bold">
+            AGOTADO
+          </div>
+        )}
+      </Link>
+
+      {/* Info */}
+      <div className="p-4 flex flex-col flex-1">
+        {/* Categoría / Marca */}
+        <div className="text-xs text-gray-500 mb-1 uppercase tracking-wider">
+          {product.brands?.name || "Genérico"}
+        </div>
+
+        <Link href={`/product/${product.slug}`}>
+          <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+            {product.name}
+          </h3>
+        </Link>
+
+        {/* Precio y Botón */}
+        <div className="mt-auto pt-4 flex items-center justify-between">
+          <span className="text-xl font-bold text-gray-900">
+            ${Number(product.price).toFixed(2)}
+          </span>
+
+          <button
+            onClick={handleAddToCart}
+            disabled={product.stock <= 0}
+            className="p-2 rounded-full bg-gray-100 hover:bg-blue-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Agregar al carrito"
+          >
+            <ShoppingCart size={20} />
+          </button>
+        </div>
       </div>
     </div>
   );

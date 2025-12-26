@@ -19,10 +19,7 @@ export default function ProductsPage() {
                 include: 'brands,subcategories,categories',
                 sort: 'id:DESC'
             });
-            console.log(error)
-            console.log(message)
-            console.log(success)
-            console.log(meta)
+
             setProducts(data);
         } catch (error) {
             console.log(error)

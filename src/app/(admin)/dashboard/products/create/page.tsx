@@ -32,9 +32,9 @@ export default function CreateProductPage() {
                     genericService.getAll<Subcategory[]>('subcategories')
                 ]);
 
-                setBrands(brandsData);
-                setCategories(catData);
-                setSubcategories(subsData);
+                setBrands(brandsData.data);
+                setCategories(catData.data);
+                setSubcategories(subsData.data);
             } catch (error) {
                 toast.error('Error cargando listas');
                 console.error(error);
